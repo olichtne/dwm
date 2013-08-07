@@ -30,6 +30,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
 #include <X11/cursorfont.h>
 #include <X11/keysym.h>
 #include <X11/Xatom.h>
@@ -212,6 +213,7 @@ static Client *nexttiled(Client *c);
 static void pop(Client *);
 static void propertynotify(XEvent *e);
 static void quit(const Arg *arg);
+static void self_restart(const Arg *arg);
 static Monitor *recttomon(int x, int y, int w, int h);
 static void removesystrayicon(Client *i);
 static void resize(Client *c, int x, int y, int w, int h, Bool interact);
@@ -1397,6 +1399,17 @@ propertynotify(XEvent *e) {
 void
 quit(const Arg *arg) {
 	running = False;
+}
+
+/**
+ * self-restart
+ *
+ * Initially inspired by: Yu-Jie Lin
+ * https://sites.google.com/site/yjlnotes/notes/dwm
+ */
+void self_restart(const Arg *arg) {
+    char *p = "/usr/bin/dwm";
+    execv(p, (char *[]) {p, NULL});
 }
 
 Monitor *
