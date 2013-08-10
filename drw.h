@@ -1,10 +1,6 @@
 /* See LICENSE file for copyright and license details. */
 
 typedef struct {
-	unsigned long rgb;
-} Clr;
-
-typedef struct {
 	Cursor cursor;
 } Cur;
 
@@ -12,14 +8,13 @@ typedef struct {
 	int ascent;
 	int descent;
 	unsigned int h;
-	XFontSet set;
-	XFontStruct *xfont;
+    XftFont *xfont;
 } Fnt;
 
 typedef struct {
-	Clr *fg;
-	Clr *bg;
-	Clr *border;
+	XftColor *fg;
+	XftColor *bg;
+	XftColor *border;
 } ClrScheme;
 
 typedef struct {
@@ -44,14 +39,14 @@ void drw_resize(Drw *drw, unsigned int w, unsigned int h);
 void drw_free(Drw *drw);
 
 /* Fnt abstraction */
-Fnt *drw_font_create(Display *dpy, const char *fontname);
+Fnt *drw_font_create(Drw *drw, const char *fontname);
 void drw_font_free(Display *dpy, Fnt *font);
-void drw_font_getexts(Fnt *font, const char *text, unsigned int len, Extnts *extnts);
-unsigned int drw_font_getexts_width(Fnt *font, const char *text, unsigned int len);
+void drw_font_getexts(Drw *drw, const char *text, unsigned int len, Extnts *extnts);
+unsigned int drw_font_getexts_width(Drw *drw, const char *text, unsigned int len);
 
 /* Colour abstraction */
-Clr *drw_clr_create(Drw *drw, const char *clrname);
-void drw_clr_free(Clr *clr);
+XftColor *drw_clr_create(Drw *drw, const char *clrname);
+void drw_clr_free(Drw *drw, XftColor *clr);
 
 /* Cursor abstraction */
 Cur *drw_cur_create(Drw *drw, int shape);
