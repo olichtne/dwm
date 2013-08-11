@@ -111,7 +111,7 @@ struct Client {
 	int basew, baseh, incw, inch, maxw, maxh, minw, minh;
 	int bw, oldbw;
 	unsigned int tags;
-	Bool isfixed, isfloating, isurgent, neverfocus, oldstate, isfullscreen;
+	Bool ismax, wasfloating, isfixed, isfloating, isurgent, neverfocus, oldstate, isfullscreen;
 	Client *next;
 	Client *snext;
 	Monitor *mon;
@@ -213,6 +213,11 @@ static void maprequest(XEvent *e);
 static void monocle(Monitor *m);
 static void motionnotify(XEvent *e);
 static void movemouse(const Arg *arg);
+static void moveresize(const Arg *arg);
+static void maximize(int x, int y, int w, int h);
+static void togglemaximize(const Arg *arg);
+static void toggleverticalmax(const Arg *arg);
+static void togglehorizontalmax(const Arg *arg);
 static Client *nexttiled(Client *c);
 static void pop(Client *);
 static void propertynotify(XEvent *e);
@@ -1242,6 +1247,8 @@ manage(Window w, XWindowAttributes *wa) {
 	c->sfh = c->h;
 	XSelectInput(dpy, w, EnterWindowMask|FocusChangeMask|PropertyChangeMask|StructureNotifyMask);
 	grabbuttons(c, False);
+	c->wasfloating = False;
+	c->ismax = False;
 	if(!c->isfloating)
 		c->isfloating = c->oldstate = trans != None || c->isfixed;
 	if(c->isfloating)
@@ -1373,6 +1380,100 @@ movemouse(const Arg *arg) {
 		selmon = m;
 		focus(NULL);
 	}
+}
+
+void
+moveresize(const Arg *arg) {
+	Client *c;
+    XEvent ev;
+    Monitor *m = selmon;
+    int x, y, w, h;
+    int nx, ny, nw, nh;
+
+    if(!(m->sel && arg && arg->v && m->sel->isfloating))
+        return;
+
+	c = selmon->sel;
+
+    x = ((int *)arg->v)[0];
+    y = ((int *)arg->v)[1];
+    w = ((int *)arg->v)[2];
+    h = ((int *)arg->v)[3];
+
+	nw = c->w + w;
+    if (nw > selmon->mw)
+        nw = selmon->mw;
+
+	nh = c->h + h;
+    if (nh > selmon->mh)
+        nh = selmon->mh;
+
+	nx = c->x + x;
+    if(nx < selmon->mx)
+        nx = selmon->mx;
+    else if(nx + nw > selmon->mw)
+        nx = selmon->mw - nw;
+
+	ny = c->y + y;
+    if(ny < selmon->my)
+        ny = selmon->my;
+    else if(ny + nh > selmon->mh)
+        ny = selmon->mh - nh;
+
+    resize(m->sel, nx,
+                   ny,
+                   nw,
+                   nh,
+                   True);
+
+    while(XCheckMaskEvent(dpy, EnterWindowMask, &ev));
+
+}
+
+void
+maximize(int x, int y, int w, int h) {
+	XEvent ev;
+
+	if(!selmon->sel || selmon->sel->isfixed)
+		return;
+	XRaiseWindow(dpy, selmon->sel->win);
+	if(!selmon->sel->ismax) {
+		if(!selmon->lt[selmon->sellt]->arrange || selmon->sel->isfloating)
+			selmon->sel->wasfloating = True;
+		else {
+			togglefloating(NULL);
+			selmon->sel->wasfloating = False;
+		}
+		selmon->sel->oldx = selmon->sel->x;
+		selmon->sel->oldy = selmon->sel->y;
+		selmon->sel->oldw = selmon->sel->w;
+		selmon->sel->oldh = selmon->sel->h;
+		resize(selmon->sel, x, y, w, h, True);
+		selmon->sel->ismax = True;
+	}
+	else {
+		resize(selmon->sel, selmon->sel->oldx, selmon->sel->oldy, selmon->sel->oldw, selmon->sel->oldh, True);
+		if(!selmon->sel->wasfloating)
+			togglefloating(NULL);
+		selmon->sel->ismax = False;
+	}
+	drawbar(selmon);
+	while(XCheckMaskEvent(dpy, EnterWindowMask, &ev));
+}
+
+void
+togglemaximize(const Arg *arg) {
+	maximize(selmon->wx, selmon->wy, selmon->ww - 2 * borderpx, selmon->wh - 2 * borderpx);
+}
+
+void
+toggleverticalmax(const Arg *arg) {
+	maximize(selmon->sel->x, selmon->wy, selmon->sel->w, selmon->wh - 2 * borderpx);
+}
+
+void
+togglehorizontalmax(const Arg *arg) {
+	maximize(selmon->wx, selmon->sel->y, selmon->ww - 2 * borderpx, selmon->sel->h);
 }
 
 Client *
