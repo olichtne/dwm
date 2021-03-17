@@ -1548,7 +1548,7 @@ quit(const Arg *arg) {
  */
 void self_restart(const Arg *arg) {
     char *p = "/usr/bin/dwm";
-    execv(p, (char *[]) {p, NULL});
+    execv(p, (char *[]) {p, "-a", NULL});
 }
 
 Monitor *
@@ -2635,10 +2635,21 @@ zoom(const Arg *arg) {
 
 int
 main(int argc, char *argv[]) {
-	if(argc == 2 && !strcmp("-v", argv[1]))
-		die("dwm-"VERSION", © 2006-2012 dwm engineers, see LICENSE for details\n");
-	else if(argc != 1)
-		die("usage: dwm [-v]\n");
+    int autostart = 1;
+    int c;
+    while ((c = getopt (argc, argv, "av")) != -1)
+        switch (c)
+        {
+            case 'a':
+                autostart = 0;
+                break;
+            case 'v':
+                die("dwm-"VERSION", © 2006-2012 dwm engineers, see LICENSE for details\n");
+                break;
+            case '?':
+            default:
+                die("usage: dwm [-a] [-v]\n");
+        }
 	if(!setlocale(LC_CTYPE, "") || !XSupportsLocale())
 		fputs("warning: no locale support\n", stderr);
 	if(!(dpy = XOpenDisplay(NULL)))
@@ -2646,7 +2657,8 @@ main(int argc, char *argv[]) {
 	checkotherwm();
 	setup();
 	scan();
-	runAutostart();
+    if (autostart)
+        runAutostart();
 	run();
 	cleanup();
 	XCloseDisplay(dpy);
